@@ -1,0 +1,172 @@
+"use client"
+
+import { useEffect, useState, useCallback } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import type { Project } from "@/lib/types/project"
+import { Plus, FolderOpen, Clock } from "lucide-react"
+import { formatRelativeTime } from "@/lib/utils/format"
+import Link from "next/link"
+
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([])
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [workingDir, setWorkingDir] = useState("")
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      const res = await fetch("/api/projects")
+      const json = await res.json()
+      if (json.success) setProjects(json.data)
+    } catch {
+      // Handle error
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchProjects()
+  }, [fetchProjects])
+
+  const handleCreate = async () => {
+    if (!name.trim()) return
+
+    try {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          workingDirectory: workingDir.trim() || undefined,
+        }),
+      })
+
+      if (res.ok) {
+        setName("")
+        setDescription("")
+        setWorkingDir("")
+        setOpen(false)
+        fetchProjects()
+      }
+    } catch {
+      // Handle error
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage your AI-assisted development projects
+          </p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger
+            className="inline-flex items-center justify-center rounded-md bg-forge-accent px-4 py-2 text-sm font-medium text-white hover:bg-forge-accent/80"
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            New Project
+          </DialogTrigger>
+          <DialogContent className="border-forge-border bg-card">
+            <DialogHeader>
+              <DialogTitle>Create Project</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="My Awesome Project"
+                  className="border-forge-border bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What is this project about?"
+                  className="border-forge-border bg-background"
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Working Directory</Label>
+                <Input
+                  value={workingDir}
+                  onChange={(e) => setWorkingDir(e.target.value)}
+                  placeholder="~/Projects/my-project"
+                  className="border-forge-border bg-background font-mono text-sm"
+                />
+              </div>
+              <Button
+                onClick={handleCreate}
+                disabled={!name.trim()}
+                className="w-full bg-forge-accent hover:bg-forge-accent/80"
+              >
+                Create Project
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {projects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-forge-border py-16">
+          <p className="text-sm text-muted-foreground">
+            No projects yet. Create one to get started.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => (
+            <Link key={project.id} href={`/projects/${project.id}`}>
+              <Card className="border-forge-border bg-card transition-colors hover:border-forge-accent/30">
+                <CardContent className="p-4">
+                  <h3 className="font-medium">{project.name}</h3>
+                  {project.description && (
+                    <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                      {project.description}
+                    </p>
+                  )}
+                  <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+                    {project.workingDirectory && (
+                      <span className="flex items-center gap-1">
+                        <FolderOpen className="h-3 w-3" />
+                        <span className="font-mono">{project.workingDirectory}</span>
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatRelativeTime(project.updatedAt)}
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs capitalize text-muted-foreground">
+                      {project.status}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
