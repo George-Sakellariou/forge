@@ -71,8 +71,6 @@ export async function runAgentLoop(
       })
 
       const contentBlocks: Anthropic.ContentBlock[] = []
-      let currentToolName = ""
-      let currentToolInput = ""
 
       stream.on("text", (text) => {
         onEvent({ type: "text_delta", data: { text } })
@@ -82,8 +80,6 @@ export async function runAgentLoop(
         contentBlocks.push(block)
 
         if (block.type === "tool_use") {
-          currentToolName = block.name
-          currentToolInput = JSON.stringify(block.input)
           onEvent({
             type: "tool_use_start",
             data: {

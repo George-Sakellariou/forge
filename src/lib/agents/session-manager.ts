@@ -1,5 +1,4 @@
 import type { AgentSession, AgentStatus } from "@/lib/types/agent"
-import { v4 as uuidv4 } from "uuid"
 
 type SessionEventHandler = (agentId: string, session: AgentSession) => void
 

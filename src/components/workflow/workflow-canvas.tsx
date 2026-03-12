@@ -13,7 +13,7 @@ interface WorkflowCanvasProps {
   onExecute?: (steps: WorkflowStep[], workingDirectory: string) => void
 }
 
-export function WorkflowCanvas({ projectId, onExecute }: WorkflowCanvasProps) {
+export function WorkflowCanvas({ onExecute }: WorkflowCanvasProps) {
   const [selectedPreset, setSelectedPreset] = useState<WorkflowPreset | null>(null)
   const [stepStatuses, setStepStatuses] = useState<Record<string, "pending" | "running" | "completed" | "failed">>({})
   const [isRunning, setIsRunning] = useState(false)

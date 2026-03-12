@@ -24,20 +24,26 @@ export default function ProjectsPage() {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [workingDir, setWorkingDir] = useState("")
-
-  const fetchProjects = useCallback(async () => {
-    try {
-      const res = await fetch("/api/projects")
-      const json = await res.json()
-      if (json.success) setProjects(json.data)
-    } catch {
-      // Handle error
-    }
-  }, [])
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
-    fetchProjects()
-  }, [fetchProjects])
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch("/api/projects")
+        const json = await res.json()
+        if (!cancelled && json.success) setProjects(json.data)
+      } catch {
+        // Handle error
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [refreshKey])
+
+  const fetchProjects = useCallback(() => {
+    setRefreshKey((k) => k + 1)
+  }, [])
 
   const handleCreate = async () => {
     if (!name.trim()) return

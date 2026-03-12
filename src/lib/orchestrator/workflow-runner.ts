@@ -1,4 +1,3 @@
-import { eventBus } from "./event-bus"
 import type { WorkflowStep } from "@/lib/types/workflow"
 
 /**

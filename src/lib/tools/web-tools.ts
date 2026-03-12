@@ -1,4 +1,4 @@
-import { registerTool, type ToolContext, type ToolOutput } from "./tool-registry"
+import { registerTool, type ToolOutput } from "./tool-registry"
 
 registerTool({
   name: "web_fetch",
@@ -18,7 +18,7 @@ registerTool({
     },
     required: ["url"],
   },
-  async execute(input: Record<string, unknown>, _context: ToolContext): Promise<ToolOutput> {
+  async execute(input: Record<string, unknown>): Promise<ToolOutput> {
     const url = input.url as string
     const maxLength = (input.max_length as number) || 50000
 
@@ -69,7 +69,7 @@ registerTool({
     },
     required: ["query"],
   },
-  async execute(input: Record<string, unknown>, _context: ToolContext): Promise<ToolOutput> {
+  async execute(input: Record<string, unknown>): Promise<ToolOutput> {
     const query = input.query as string
     const _maxResults = (input.max_results as number) || 5
 

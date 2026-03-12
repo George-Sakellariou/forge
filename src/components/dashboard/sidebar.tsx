@@ -6,8 +6,6 @@ import {
   LayoutDashboard,
   Bot,
   FolderKanban,
-  GitBranch,
-  BarChart3,
   Settings,
   Hammer,
 } from "lucide-react"

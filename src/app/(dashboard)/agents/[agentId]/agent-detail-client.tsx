@@ -5,7 +5,6 @@ import { AgentOutput } from "@/components/agents/agent-output"
 import { AgentStatusBadge } from "@/components/agents/agent-status-badge"
 import { PromptInput } from "@/components/console/prompt-input"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { useAgentStore } from "@/stores/agent-store"
 import { formatCost, formatTokens } from "@/lib/agents/cost-tracker"
 import type { Agent } from "@/lib/types/agent"
@@ -46,6 +45,53 @@ export function AgentDetailClient({ agentId }: AgentDetailClientProps) {
     }
     fetchAgent()
   }, [agentId])
+
+  const handleSSEEvent = useCallback(
+    (eventType: string, data: Record<string, unknown>) => {
+      switch (eventType) {
+        case "text_delta":
+          appendOutput(agentId, data.text as string)
+          break
+
+        case "tool_use_start":
+          addEvent(agentId, {
+            id: uuidv4(),
+            type: "tool_use_start",
+            data,
+            timestamp: new Date().toISOString(),
+          })
+          appendOutput(
+            agentId,
+            `\n[Tool: ${data.toolName}]\n`,
+          )
+          break
+
+        case "tool_result":
+          addEvent(agentId, {
+            id: uuidv4(),
+            type: "tool_result",
+            data,
+            timestamp: new Date().toISOString(),
+          })
+          break
+
+        case "usage":
+          updateSession(agentId, {
+            tokensUsed:
+              ((data.totalInputTokens as number) || 0) +
+              ((data.totalOutputTokens as number) || 0),
+            costUsd: (data.totalCost as number) || 0,
+          })
+          break
+
+        case "error":
+          appendOutput(agentId, `\nError: ${data.error}\n`)
+          updateSession(agentId, { status: "error" })
+          break
+      }
+    },
+    [agentId, appendOutput, addEvent, updateSession],
+  )
 
   const handleSend = useCallback(
     async (message: string) => {
@@ -107,54 +153,7 @@ export function AgentDetailClient({ agentId }: AgentDetailClientProps) {
         stopStreaming(agentId)
       }
     },
-    [agent, agentId, workingDir, startStreaming, stopStreaming, appendOutput],
-  )
-
-  const handleSSEEvent = useCallback(
-    (eventType: string, data: Record<string, unknown>) => {
-      switch (eventType) {
-        case "text_delta":
-          appendOutput(agentId, data.text as string)
-          break
-
-        case "tool_use_start":
-          addEvent(agentId, {
-            id: uuidv4(),
-            type: "tool_use_start",
-            data,
-            timestamp: new Date().toISOString(),
-          })
-          appendOutput(
-            agentId,
-            `\n[Tool: ${data.toolName}]\n`,
-          )
-          break
-
-        case "tool_result":
-          addEvent(agentId, {
-            id: uuidv4(),
-            type: "tool_result",
-            data,
-            timestamp: new Date().toISOString(),
-          })
-          break
-
-        case "usage":
-          updateSession(agentId, {
-            tokensUsed:
-              ((data.totalInputTokens as number) || 0) +
-              ((data.totalOutputTokens as number) || 0),
-            costUsd: (data.totalCost as number) || 0,
-          })
-          break
-
-        case "error":
-          appendOutput(agentId, `\nError: ${data.error}\n`)
-          updateSession(agentId, { status: "error" })
-          break
-      }
-    },
-    [agentId, appendOutput, addEvent, updateSession],
+    [agent, agentId, workingDir, startStreaming, stopStreaming, appendOutput, handleSSEEvent],
   )
 
   const handleStop = useCallback(async () => {

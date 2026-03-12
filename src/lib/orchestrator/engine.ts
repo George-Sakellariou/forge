@@ -1,5 +1,4 @@
 import { eventBus } from "./event-bus"
-import type { AgentLoopConfig } from "@/lib/agents/agent-loop"
 
 export interface OrchestrationContext {
   projectId: string

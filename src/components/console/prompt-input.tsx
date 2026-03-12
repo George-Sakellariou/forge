@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Send, Square, Loader2 } from "lucide-react"
+import { Send, Square } from "lucide-react"
 
 interface PromptInputProps {
   onSubmit: (message: string) => void

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs"
 import path from "node:path"
 import { registerTool, type ToolContext, type ToolOutput } from "./tool-registry"
-import { validateFileWrite, validateWorkingDirectory } from "./safety"
+import { validateFileWrite } from "./safety"
 
 function resolvePath(filePath: string, context: ToolContext): string {
   if (path.isAbsolute(filePath)) return filePath

@@ -2,20 +2,18 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AgentGrid } from "@/components/agents/agent-grid"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { AdminConsole } from "@/components/console/admin-console"
 import { useAgentStore } from "@/stores/agent-store"
-import type { Agent } from "@/lib/types/agent"
 import type { Project } from "@/lib/types/project"
 import { FolderOpen, GitBranch } from "lucide-react"
 import Link from "next/link"
 
 export default function ProjectWorkspacePage() {
   const { projectId } = useParams<{ projectId: string }>()
-  const [project, setProject] = useState<Project | null>(null)
+  const [project] = useState<Project | null>(null)
   const agents = useAgentStore((s) => s.agents)
   const setAgents = useAgentStore((s) => s.setAgents)
 

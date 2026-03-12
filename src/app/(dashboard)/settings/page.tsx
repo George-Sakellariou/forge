@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CheckCircle2, AlertCircle } from "lucide-react"
@@ -11,8 +10,6 @@ export default function SettingsPage() {
   const [supabaseUrl, setSupabaseUrl] = useState("")
   const [supabaseKey, setSupabaseKey] = useState("")
   const [anthropicKey, setAnthropicKey] = useState("")
-  const [saved, setSaved] = useState(false)
-
   return (
     <div className="space-y-6">
       <div>
