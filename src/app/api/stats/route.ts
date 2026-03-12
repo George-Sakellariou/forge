@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { sessionManager } from "@/lib/agents/session-manager"
 import { agentPool } from "@/lib/orchestrator/agent-pool"
-import { createClient } from "@/lib/supabase/server"
+import { getTaskStats } from "@/lib/db/tasks"
 
 export async function GET() {
   const sessions = sessionManager.getAllSessions()
@@ -10,20 +10,9 @@ export async function GET() {
   const totalTokens = sessions.reduce((sum, s) => sum + s.tokensUsed, 0)
   const totalCost = sessions.reduce((sum, s) => sum + s.costUsd, 0)
 
-  // Get task counts from DB
-  let taskStats = { pending: 0, running: 0, completed: 0, failed: 0 }
+  let taskStats: Record<string, number> = { pending: 0, running: 0, completed: 0, failed: 0 }
   try {
-    const supabase = await createClient()
-    const { data: tasks } = await supabase.from("tasks").select("status")
-
-    if (tasks) {
-      for (const task of tasks) {
-        const status = task.status as keyof typeof taskStats
-        if (status in taskStats) {
-          taskStats = { ...taskStats, [status]: taskStats[status] + 1 }
-        }
-      }
-    }
+    taskStats = await getTaskStats()
   } catch {
     // Non-critical
   }

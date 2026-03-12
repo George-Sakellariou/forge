@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: forge_db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: forge
+      POSTGRES_USER: forge
+      POSTGRES_PASSWORD: forge_local_dev
+    volumes:
+      # Primary data persistence
+      - forge_data:/var/lib/postgresql/data
+      # Mount migrations for easy init
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+      # Mount backup directory
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forge -d forge"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  forge_data:
+    driver: local

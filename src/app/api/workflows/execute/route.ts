@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { findWorkflowById, updateWorkflowStatus } from "@/lib/db/workflows"
+import { findAllAgents } from "@/lib/db/agents"
 import { WorkflowRunner } from "@/lib/orchestrator/workflow-runner"
 import { agentPool } from "@/lib/orchestrator/agent-pool"
 import { eventBus } from "@/lib/orchestrator/event-bus"
@@ -23,73 +24,38 @@ export async function POST(request: Request) {
 
   const { workflowId, workingDirectory } = parsed.data
 
-  // Safety
   const dirCheck = validateWorkingDirectory(workingDirectory)
   if (!dirCheck.allowed) {
     return NextResponse.json({ success: false, error: dirCheck.reason }, { status: 403 })
   }
 
-  const supabase = await createClient()
-
-  // Fetch workflow
-  const { data: workflow, error: wfError } = await supabase
-    .from("workflows")
-    .select("*")
-    .eq("id", workflowId)
-    .single()
-
-  if (wfError || !workflow) {
+  const workflow = await findWorkflowById(workflowId)
+  if (!workflow) {
     return NextResponse.json({ success: false, error: "Workflow not found" }, { status: 404 })
   }
 
-  // Fetch all agents
-  const { data: agents, error: agError } = await supabase.from("agents").select("*")
-
-  if (agError || !agents) {
-    return NextResponse.json({ success: false, error: "Failed to load agents" }, { status: 500 })
-  }
-
+  const agents = await findAllAgents()
   const agentsByRole = new Map<string, Agent>()
-  for (const row of agents) {
-    const agent: Agent = {
-      id: row.id,
-      name: row.name,
-      role: row.role,
-      systemPrompt: row.system_prompt,
-      model: row.model,
-      tools: row.tools || [],
-      mcpServers: row.mcp_servers || [],
-      config: row.config || {},
-      isBuiltin: row.is_builtin,
-      createdAt: row.created_at,
-    }
+  for (const agent of agents) {
     agentsByRole.set(agent.role, agent)
   }
 
   const steps = workflow.steps as WorkflowStep[]
   const runner = new WorkflowRunner(steps)
 
-  // Update workflow status
-  await supabase
-    .from("workflows")
-    .update({ status: "running" })
-    .eq("id", workflowId)
+  await updateWorkflowStatus(workflowId, "running")
 
   eventBus.publish("workflow:started", {
     workflowName: workflow.name,
     stepCount: steps.length,
-  }, { projectId: workflow.project_id })
+  }, { projectId: workflow.projectId })
 
-  // Execute steps asynchronously
-  executeWorkflowSteps(runner, steps, agentsByRole, workingDirectory, workflow.project_id, workflowId, supabase)
+  // Execute asynchronously
+  executeWorkflowSteps(runner, steps, agentsByRole, workingDirectory, workflow.projectId, workflowId)
 
   return NextResponse.json({
     success: true,
-    data: {
-      workflowId,
-      status: "running",
-      totalSteps: steps.length,
-    },
+    data: { workflowId, status: "running", totalSteps: steps.length },
   })
 }
 
@@ -100,31 +66,20 @@ async function executeWorkflowSteps(
   workingDirectory: string,
   projectId: string,
   workflowId: string,
-  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
 ) {
   const stepOutputs = new Map<string, string>()
 
   while (!runner.isComplete) {
     const readySteps = runner.getReadySteps()
+    if (readySteps.length === 0) break
 
-    if (readySteps.length === 0) {
-      // Deadlock or all remaining steps have unresolved dependencies
-      break
-    }
-
-    // Execute ready steps (potentially in parallel)
     const promises = readySteps.map(async (step) => {
       const agent = agentsByRole.get(step.agentRole)
       if (!agent) {
-        eventBus.publish("agent:error", {
-          error: `No agent found for role: ${step.agentRole}`,
-          stepId: step.id,
-        }, { projectId })
         runner.markCompleted(step.id)
         return
       }
 
-      // Build context from dependency outputs
       const depContext = step.dependsOn
         .map((depId) => stepOutputs.get(depId))
         .filter(Boolean)
@@ -134,10 +89,7 @@ async function executeWorkflowSteps(
         ? `Context from previous steps:\n${depContext}\n\n---\n\nYour task: ${step.prompt}`
         : step.prompt
 
-      await supabase
-        .from("workflows")
-        .update({ current_step: step.id })
-        .eq("id", workflowId)
+      await updateWorkflowStatus(workflowId, "running", step.id)
 
       return new Promise<void>((resolve) => {
         let output = ""
@@ -176,12 +128,8 @@ async function executeWorkflowSteps(
     await Promise.all(promises)
   }
 
-  // Update workflow as completed
   const finalStatus = runner.isComplete ? "completed" : "failed"
-  await supabase
-    .from("workflows")
-    .update({ status: finalStatus, current_step: null })
-    .eq("id", workflowId)
+  await updateWorkflowStatus(workflowId, finalStatus, null)
 
   eventBus.publish(
     finalStatus === "completed" ? "workflow:completed" : "workflow:failed",

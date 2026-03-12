@@ -9,18 +9,21 @@ Forge is a local-first AI workforce orchestration platform. Specialized AI agent
 - **State**: Zustand (client), React Server Components (server)
 - **Real-time**: Server-Sent Events (SSE) via Route Handlers
 - **AI**: @anthropic-ai/sdk (direct API, streaming, tool_use loop)
-- **Database**: Supabase (local PostgreSQL via Docker)
+- **Database**: PostgreSQL 17 (single Docker container, `postgres` npm driver)
 - **Validation**: Zod v4
 - **Testing**: Vitest + React Testing Library + Playwright (to be set up)
 
 ## Commands
 ```bash
-npm run dev          # Start dev server (port 3000)
-npm run build        # Production build
-npm run lint         # ESLint
-supabase start       # Start local Supabase (requires Docker)
-supabase db reset    # Apply/reset all migrations
-supabase status      # Show local Supabase URLs and keys
+pnpm run dev                    # Start dev server (port 3000)
+pnpm run build                  # Production build
+pnpm run lint                   # ESLint
+docker compose up -d            # Start Postgres container
+docker compose down             # Stop Postgres container
+./scripts/start.sh              # Start DB + backup + dev server
+./scripts/stop.sh               # Backup + stop DB
+./scripts/backup.sh             # Manual pg_dump backup
+./scripts/restore.sh [file]     # Restore from backup
 ```
 
 ## Architecture
@@ -29,7 +32,7 @@ supabase status      # Show local Supabase URLs and keys
 - `src/lib/agents/` - Agent execution (factory, loop, session, cost tracking, definitions)
 - `src/lib/tools/` - Tool system with safety policies (file ops, bash, grep, glob, web)
 - `src/lib/orchestrator/` - Event bus (with persistence), agent pool, task router, workflow runner, presets
-- `src/lib/supabase/` - Database clients (browser, server, admin)
+- `src/lib/db/` - Database repository layer (postgresjs queries)
 - `src/lib/types/` - Zod schemas and TypeScript types (agent, project, task, workflow, events)
 - `src/components/` - UI components (dashboard, agents, console, workflow)
 - `src/stores/` - Zustand stores (agent, event, project)
@@ -38,7 +41,7 @@ supabase status      # Show local Supabase URLs and keys
 - **Agent Loop**: prompt -> Claude API stream -> detect tool_use -> execute tool -> feed tool_result -> continue
 - **SSE Streaming**: Agent output streams via POST to `/api/agents/[id]/stream`
 - **Agent Pool**: Concurrent agent limit (default 5), auto-queuing, lifecycle management
-- **Event Bus**: In-process EventEmitter with batch persistence to Supabase
+- **Event Bus**: In-process EventEmitter with batch persistence to PostgreSQL
 - **Safety Policies**: Blocked commands (rm -rf, sudo, force push, etc.), path sandboxing, protected files (.env, credentials)
 - **Workflow DAG**: Steps with dependencies, parallel execution of independent steps, preset templates
 - **Dark Theme**: Custom CSS variables in globals.css, always-dark (`<html class="dark">`)
@@ -51,8 +54,12 @@ supabase status      # Show local Supabase URLs and keys
 - No auth needed - local-only personal tool
 
 ## Database
-6 migrations in `supabase/migrations/`:
-- projects, agents (8 seeded built-in), tasks, workflows, events, cost_tracking
+- Single Postgres 17 Alpine container via `docker-compose.yml`
+- Docker named volume `forge_data` persists data across container restarts
+- Automated pg_dump backups in `./backups/` (kept last 10)
+- 6 SQL migrations in `supabase/migrations/` (auto-run on first container start)
+- Tables: projects, agents (8 seeded built-in), tasks, workflows, events, cost_tracking
+- DB driver: `postgres` (postgresjs) — direct queries, no ORM
 
 ## Implemented Phases
 - **Phase 1**: Foundation - dark dashboard, agent cards, streaming chat, full tool access

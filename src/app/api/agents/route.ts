@@ -1,36 +1,15 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { findAllAgents, createAgent } from "@/lib/db/agents"
 import { CreateAgentSchema } from "@/lib/types/agent"
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("agents")
-    .select("*")
-    .order("created_at", { ascending: true })
-
-  if (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    )
+  try {
+    const agents = await findAllAgents()
+    return NextResponse.json({ success: true, data: agents })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
-
-  // Map snake_case DB fields to camelCase
-  const agents = data.map((row) => ({
-    id: row.id,
-    name: row.name,
-    role: row.role,
-    systemPrompt: row.system_prompt,
-    model: row.model,
-    tools: row.tools || [],
-    mcpServers: row.mcp_servers || [],
-    config: row.config || {},
-    isBuiltin: row.is_builtin,
-    createdAt: row.created_at,
-  }))
-
-  return NextResponse.json({ success: true, data: agents })
 }
 
 export async function POST(request: Request) {
@@ -38,34 +17,23 @@ export async function POST(request: Request) {
   const parsed = CreateAgentSchema.safeParse(body)
 
   if (!parsed.success) {
-    return NextResponse.json(
-      { success: false, error: parsed.error.message },
-      { status: 400 },
-    )
+    return NextResponse.json({ success: false, error: parsed.error.message }, { status: 400 })
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("agents")
-    .insert({
+  try {
+    const agent = await createAgent({
       name: parsed.data.name,
       role: parsed.data.role,
-      system_prompt: parsed.data.systemPrompt,
+      systemPrompt: parsed.data.systemPrompt,
       model: parsed.data.model,
       tools: parsed.data.tools,
-      mcp_servers: parsed.data.mcpServers,
+      mcpServers: parsed.data.mcpServers,
       config: parsed.data.config,
-      is_builtin: parsed.data.isBuiltin,
+      isBuiltin: parsed.data.isBuiltin,
     })
-    .select()
-    .single()
-
-  if (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    )
+    return NextResponse.json({ success: true, data: agent }, { status: 201 })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
-
-  return NextResponse.json({ success: true, data }, { status: 201 })
 }

@@ -1,50 +1,23 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { findTasks, createTask, updateTask } from "@/lib/db/tasks"
 import { CreateTaskSchema } from "@/lib/types/task"
 import { eventBus } from "@/lib/orchestrator/event-bus"
 import { z } from "zod/v4"
 
-function mapTaskRow(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    projectId: row.project_id,
-    agentId: row.agent_id,
-    parentTaskId: row.parent_task_id,
-    title: row.title,
-    description: row.description,
-    status: row.status,
-    priority: row.priority,
-    input: row.input || {},
-    output: row.output || {},
-    sessionId: row.session_id,
-    tokensUsed: row.tokens_used,
-    costUsd: Number(row.cost_usd),
-    startedAt: row.started_at,
-    completedAt: row.completed_at,
-    createdAt: row.created_at,
-  }
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const projectId = searchParams.get("projectId")
-  const agentId = searchParams.get("agentId")
-  const status = searchParams.get("status")
 
-  const supabase = await createClient()
-  let query = supabase.from("tasks").select("*").order("priority", { ascending: false }).order("created_at", { ascending: false })
-
-  if (projectId) query = query.eq("project_id", projectId)
-  if (agentId) query = query.eq("agent_id", agentId)
-  if (status) query = query.eq("status", status)
-
-  const { data, error } = await query
-
-  if (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  try {
+    const tasks = await findTasks({
+      projectId: searchParams.get("projectId") || undefined,
+      agentId: searchParams.get("agentId") || undefined,
+      status: searchParams.get("status") || undefined,
+    })
+    return NextResponse.json({ success: true, data: tasks })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
-
-  return NextResponse.json({ success: true, data: data.map(mapTaskRow) })
 }
 
 export async function POST(request: Request) {
@@ -55,37 +28,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: parsed.error.message }, { status: 400 })
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("tasks")
-    .insert({
-      project_id: parsed.data.projectId,
-      agent_id: parsed.data.agentId,
-      parent_task_id: parsed.data.parentTaskId,
+  try {
+    const task = await createTask({
+      projectId: parsed.data.projectId,
+      agentId: parsed.data.agentId,
+      parentTaskId: parsed.data.parentTaskId,
       title: parsed.data.title,
       description: parsed.data.description,
-      priority: parsed.data.priority ?? 0,
-      input: parsed.data.input || {},
+      priority: parsed.data.priority,
+      input: parsed.data.input,
     })
-    .select()
-    .single()
 
-  if (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    eventBus.publish("task:created", { taskTitle: task.title }, {
+      projectId: task.projectId,
+      taskId: task.id,
+      agentId: task.agentId || undefined,
+    })
+
+    return NextResponse.json({ success: true, data: task }, { status: 201 })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
-
-  const task = mapTaskRow(data)
-
-  eventBus.publish("task:created", { taskTitle: task.title }, {
-    projectId: task.projectId as string,
-    taskId: task.id as string,
-    agentId: task.agentId as string | undefined,
-  })
-
-  return NextResponse.json({ success: true, data: task }, { status: 201 })
 }
 
-// PATCH for updating tasks (status, assignment, output)
 export async function PATCH(request: Request) {
   const body = await request.json()
 
@@ -103,54 +69,31 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: false, error: parsed.error.message }, { status: 400 })
   }
 
-  const { id, ...updates } = parsed.data
-  const dbUpdates: Record<string, unknown> = {}
+  try {
+    const { id, ...updates } = parsed.data
+    const task = await updateTask(id, updates)
 
-  if (updates.status) {
-    dbUpdates.status = updates.status
-    if (updates.status === "running") dbUpdates.started_at = new Date().toISOString()
-    if (updates.status === "completed" || updates.status === "failed") {
-      dbUpdates.completed_at = new Date().toISOString()
+    if (!task) {
+      return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 })
     }
+
+    if (updates.status === "completed") {
+      eventBus.publish("task:completed", { taskTitle: task.title }, {
+        projectId: task.projectId,
+        taskId: task.id,
+        agentId: task.agentId || undefined,
+      })
+    } else if (updates.status === "failed") {
+      eventBus.publish("task:failed", { taskTitle: task.title }, {
+        projectId: task.projectId,
+        taskId: task.id,
+        agentId: task.agentId || undefined,
+      })
+    }
+
+    return NextResponse.json({ success: true, data: task })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
-  if (updates.agentId) dbUpdates.agent_id = updates.agentId
-  if (updates.output) dbUpdates.output = updates.output
-  if (updates.tokensUsed !== undefined) dbUpdates.tokens_used = updates.tokensUsed
-  if (updates.costUsd !== undefined) dbUpdates.cost_usd = updates.costUsd
-
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("tasks")
-    .update(dbUpdates)
-    .eq("id", id)
-    .select()
-    .single()
-
-  if (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-  }
-
-  const task = mapTaskRow(data)
-
-  if (updates.status === "completed") {
-    eventBus.publish("task:completed", { taskTitle: task.title }, {
-      projectId: task.projectId as string,
-      taskId: task.id as string,
-      agentId: task.agentId as string | undefined,
-    })
-  } else if (updates.status === "failed") {
-    eventBus.publish("task:failed", { taskTitle: task.title }, {
-      projectId: task.projectId as string,
-      taskId: task.id as string,
-      agentId: task.agentId as string | undefined,
-    })
-  } else if (updates.agentId) {
-    eventBus.publish("task:assigned", { taskTitle: task.title }, {
-      projectId: task.projectId as string,
-      taskId: task.id as string,
-      agentId: updates.agentId,
-    })
-  }
-
-  return NextResponse.json({ success: true, data: task })
 }

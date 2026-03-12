@@ -95,21 +95,8 @@ class ForgeEventBus extends EventEmitter {
     this.persistQueue = []
 
     try {
-      // Dynamic import to avoid circular dependencies
-      const { createAdminClient } = await import("@/lib/supabase/admin")
-      const supabase = createAdminClient()
-
-      const rows = batch.map((event) => ({
-        id: event.id,
-        project_id: event.projectId,
-        task_id: event.taskId,
-        agent_id: event.agentId,
-        type: event.type,
-        payload: event.payload,
-        created_at: event.createdAt,
-      }))
-
-      await supabase.from("events").insert(rows)
+      const { insertEvents } = await import("@/lib/db/events")
+      await insertEvents(batch)
     } catch {
       // Non-critical - events are already in memory
       // Re-queue failed events for next batch

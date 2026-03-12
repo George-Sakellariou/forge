@@ -1,40 +1,22 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { findAgentById, deleteAgent } from "@/lib/db/agents"
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ agentId: string }> },
 ) {
   const { agentId } = await params
-  const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from("agents")
-    .select("*")
-    .eq("id", agentId)
-    .single()
-
-  if (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: error.code === "PGRST116" ? 404 : 500 },
-    )
+  try {
+    const agent = await findAgentById(agentId)
+    if (!agent) {
+      return NextResponse.json({ success: false, error: "Agent not found" }, { status: 404 })
+    }
+    return NextResponse.json({ success: true, data: agent })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
-
-  const agent = {
-    id: data.id,
-    name: data.name,
-    role: data.role,
-    systemPrompt: data.system_prompt,
-    model: data.model,
-    tools: data.tools || [],
-    mcpServers: data.mcp_servers || [],
-    config: data.config || {},
-    isBuiltin: data.is_builtin,
-    createdAt: data.created_at,
-  }
-
-  return NextResponse.json({ success: true, data: agent })
 }
 
 export async function DELETE(
@@ -42,19 +24,12 @@ export async function DELETE(
   { params }: { params: Promise<{ agentId: string }> },
 ) {
   const { agentId } = await params
-  const supabase = await createClient()
 
-  const { error } = await supabase
-    .from("agents")
-    .delete()
-    .eq("id", agentId)
-
-  if (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    )
+  try {
+    await deleteAgent(agentId)
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
-
-  return NextResponse.json({ success: true })
 }
