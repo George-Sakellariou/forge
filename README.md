@@ -8,6 +8,12 @@ Built with Next.js 16 &bull; React 19 &bull; Anthropic Claude API &bull; TypeScr
 
 [Getting Started](#getting-started) &bull; [Architecture](#architecture) &bull; [Features](#features) &bull; [Agent Roles](#agent-roles) &bull; [Screenshots](#screenshots)
 
+<br />
+
+<img src="docs/screenshots/dashboard.png" alt="Forge Dashboard — Command Center with 8 AI agents" width="100%" />
+
+<sub>Command Center — monitor and direct your AI workforce in real-time</sub>
+
 </div>
 
 ---
@@ -38,6 +44,33 @@ Each agent has real tool access (file I/O, terminal, web search, code search) an
 - **Safety Policies** — Path sandboxing, blocked destructive commands, protected files
 - **Token Optimization** — Tool result truncation, conversation sliding window, role-tuned parameters
 - **Dark Theme UI** — Premium agentic aesthetic with glass panels, gradient accents, and glow effects
+
+---
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%">
+
+**Dashboard — Command Center**
+
+<img src="docs/screenshots/dashboard.png" alt="Dashboard" />
+
+8 agent cards with status indicators, live stats, activity feed, and admin console
+
+</td>
+<td width="50%">
+
+**Agent Execution — Tool Activity**
+
+<img src="docs/screenshots/agent-execution.png" alt="Agent Execution" />
+
+Real-time streaming with tool calls (read_file, write_file), token tracking, and cost display
+
+</td>
+</tr>
+</table>
 
 ---
 
