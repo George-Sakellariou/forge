@@ -25,7 +25,34 @@ export default function WorkflowPage() {
         </div>
       </div>
 
-      <WorkflowCanvas projectId={projectId} />
+      <WorkflowCanvas projectId={projectId} onExecute={async (steps, workingDirectory) => {
+        try {
+          // First create the workflow
+          const createRes = await fetch("/api/workflows", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              projectId,
+              name: `Workflow ${new Date().toLocaleTimeString()}`,
+              steps,
+            }),
+          })
+          const createJson = await createRes.json()
+          if (!createJson.success) return
+
+          // Then execute it
+          await fetch("/api/workflows/execute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              workflowId: createJson.data.id,
+              workingDirectory: workingDirectory || "/tmp/forge-workflow",
+            }),
+          })
+        } catch {
+          // Handle error
+        }
+      }} />
     </div>
   )
 }

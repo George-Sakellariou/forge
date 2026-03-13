@@ -4,6 +4,7 @@ import { agentPool } from "@/lib/orchestrator/agent-pool"
 import { getTaskStats } from "@/lib/db/tasks"
 
 export async function GET() {
+  const hasApiKey = !!process.env.ANTHROPIC_API_KEY
   const sessions = sessionManager.getAllSessions()
 
   const activeAgents = sessions.filter((s) => s.status === "working").length
@@ -20,6 +21,7 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     data: {
+      hasApiKey,
       activeAgents,
       totalSessions: sessions.length,
       totalTokens,

@@ -29,6 +29,9 @@ export async function POST(request: Request) {
     )
   }
 
+  // Queue the message for injection at next turn boundary
+  sessionManager.queueMessage(agentId, message)
+
   // Publish admin instruction event
   eventBus.publish(
     "admin:instruction",
@@ -36,5 +39,5 @@ export async function POST(request: Request) {
     { agentId },
   )
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, data: { delivered: true } })
 }

@@ -16,6 +16,8 @@ export const EventType = z.enum([
   "task:failed",
   "workflow:started",
   "workflow:step_complete",
+  "workflow:step_failed",
+  "workflow:step_skipped",
   "workflow:completed",
   "workflow:failed",
   "admin:instruction",

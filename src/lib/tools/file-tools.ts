@@ -11,11 +11,15 @@ function resolvePath(filePath: string, context: ToolContext): string {
 async function validatePath(resolved: string, context: ToolContext): Promise<string | null> {
   const normalizedResolved = path.normalize(resolved)
   const normalizedWd = path.normalize(context.workingDirectory)
-  if (!normalizedResolved.startsWith(normalizedWd)) {
+  // Ensure exact directory boundary: path must be inside wd, not just a prefix match
+  // e.g. /tmp/project-evil must NOT pass for /tmp/project
+  if (!normalizedResolved.startsWith(normalizedWd + path.sep) && normalizedResolved !== normalizedWd) {
     return `Access denied: path ${resolved} is outside working directory ${context.workingDirectory}`
   }
   return null
 }
+
+export { validatePath }
 
 registerTool({
   name: "read_file",

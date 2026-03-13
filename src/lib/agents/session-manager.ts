@@ -6,6 +6,21 @@ class SessionManager {
   private sessions = new Map<string, AgentSession>()
   private abortControllers = new Map<string, AbortController>()
   private listeners = new Set<SessionEventHandler>()
+  private pendingMessages = new Map<string, string[]>()
+
+  /** Queue a message to be injected into the agent's next turn */
+  queueMessage(agentId: string, message: string): void {
+    const queue = this.pendingMessages.get(agentId) || []
+    queue.push(message)
+    this.pendingMessages.set(agentId, queue)
+  }
+
+  /** Drain all pending messages for an agent (returns empty array if none) */
+  drainMessages(agentId: string): string[] {
+    const queue = this.pendingMessages.get(agentId) || []
+    this.pendingMessages.delete(agentId)
+    return queue
+  }
 
   createSession(agentId: string, projectId?: string, workingDirectory?: string): AgentSession {
     const session: AgentSession = {

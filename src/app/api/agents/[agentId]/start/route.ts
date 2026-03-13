@@ -36,24 +36,19 @@ export async function POST(
     return NextResponse.json({ success: false, error: "Agent not found" }, { status: 404 })
   }
 
-  if (!agentPool.canStartAgent()) {
-    return NextResponse.json({
-      success: false,
-      error: "Agent pool at capacity. Agent has been queued.",
-      queued: true,
-      poolStatus: agentPool.getStatus(),
-    }, { status: 202 })
-  }
-
+  // runAgent handles both immediate execution and queuing internally
   agentPool.runAgent({ agent, message, workingDirectory, projectId, taskId })
+
+  const poolStatus = agentPool.getStatus()
+  const wasQueued = !poolStatus.runningAgentIds.includes(agent.id)
 
   return NextResponse.json({
     success: true,
     data: {
       agentId: agent.id,
       agentName: agent.name,
-      status: "started",
-      poolStatus: agentPool.getStatus(),
+      status: wasQueued ? "queued" : "started",
+      poolStatus,
     },
-  })
+  }, { status: wasQueued ? 202 : 200 })
 }

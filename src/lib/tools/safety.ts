@@ -116,12 +116,12 @@ export function validateCommand(command: string, workingDirectory: string): Safe
 export function validateWorkingDirectory(dir: string): SafetyCheckResult {
   const normalized = path.normalize(dir)
 
-  // Block forbidden directories
+  // Block forbidden directories and their subdirectories
   for (const forbidden of FORBIDDEN_WORKING_DIRS) {
-    if (normalized === forbidden) {
+    if (normalized === forbidden || normalized.startsWith(forbidden + path.sep)) {
       return {
         allowed: false,
-        reason: `BLOCKED: "${dir}" is a protected system directory. Use a specific project directory.`,
+        reason: `BLOCKED: "${dir}" is inside a protected system directory. Use a specific project directory.`,
       }
     }
   }

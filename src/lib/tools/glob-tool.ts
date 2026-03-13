@@ -1,5 +1,12 @@
 import { spawn } from "node:child_process"
+import path from "node:path"
 import { registerTool, type ToolContext, type ToolOutput } from "./tool-registry"
+
+function isWithinDirectory(target: string, boundary: string): boolean {
+  const normalizedTarget = path.normalize(path.resolve(boundary, target))
+  const normalizedBoundary = path.normalize(boundary)
+  return normalizedTarget.startsWith(normalizedBoundary + path.sep) || normalizedTarget === normalizedBoundary
+}
 
 registerTool({
   name: "glob",
@@ -21,7 +28,12 @@ registerTool({
   },
   async execute(input: Record<string, unknown>, context: ToolContext): Promise<ToolOutput> {
     const pattern = input.pattern as string
-    const searchPath = (input.path as string) || context.workingDirectory
+    const rawPath = (input.path as string) || context.workingDirectory
+    const searchPath = path.resolve(context.workingDirectory, rawPath)
+
+    if (!isWithinDirectory(searchPath, context.workingDirectory)) {
+      return { content: `Access denied: search path is outside working directory ${context.workingDirectory}`, isError: true }
+    }
 
     return new Promise((resolve) => {
       // Use fd if available, fall back to find

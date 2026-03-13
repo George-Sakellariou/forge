@@ -39,6 +39,15 @@ export class AgentPool {
   async runAgent(request: AgentRunRequest): Promise<void> {
     const { agent } = request
 
+    // Prevent duplicate runs of the same agent
+    if (this.running.has(agent.id)) {
+      eventBus.publish("agent:error", {
+        agentName: agent.name,
+        error: "Agent is already running. Stop it first before starting a new run.",
+      }, { agentId: agent.id, projectId: request.projectId })
+      return
+    }
+
     if (!this.canStartAgent()) {
       // Queue the request
       this.queue.push(request)

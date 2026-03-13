@@ -2,11 +2,13 @@ import type { WorkflowStep } from "@/lib/types/workflow"
 
 /**
  * Executes workflow DAGs step by step.
- * Phase 3: Full DAG execution with parallel steps, dependency resolution, pause/resume.
+ * Tracks completed, failed, and skipped steps separately.
  */
 export class WorkflowRunner {
   private steps: WorkflowStep[]
   private completedSteps = new Set<string>()
+  private failedSteps = new Set<string>()
+  private skippedSteps = new Set<string>()
 
   constructor(steps: WorkflowStep[]) {
     this.steps = steps
@@ -16,6 +18,8 @@ export class WorkflowRunner {
     return this.steps.filter(
       (step) =>
         !this.completedSteps.has(step.id) &&
+        !this.failedSteps.has(step.id) &&
+        !this.skippedSteps.has(step.id) &&
         step.dependsOn.every((dep) => this.completedSteps.has(dep)),
     )
   }
@@ -24,12 +28,47 @@ export class WorkflowRunner {
     this.completedSteps.add(stepId)
   }
 
-  get isComplete(): boolean {
-    return this.completedSteps.size === this.steps.length
+  markFailed(stepId: string): void {
+    this.failedSteps.add(stepId)
+    // Skip any steps that depend on this failed step
+    for (const step of this.steps) {
+      if (step.dependsOn.includes(stepId)) {
+        this.markSkipped(step.id)
+      }
+    }
+  }
+
+  markSkipped(stepId: string): void {
+    if (this.skippedSteps.has(stepId)) return
+    this.skippedSteps.add(stepId)
+    // Cascade: skip steps that depend on skipped steps
+    for (const step of this.steps) {
+      if (step.dependsOn.includes(stepId)) {
+        this.markSkipped(step.id)
+      }
+    }
+  }
+
+  get isFinished(): boolean {
+    const resolved = this.completedSteps.size + this.failedSteps.size + this.skippedSteps.size
+    return resolved === this.steps.length
+  }
+
+  get hasFailures(): boolean {
+    return this.failedSteps.size > 0
   }
 
   get progress(): number {
     if (this.steps.length === 0) return 100
     return Math.round((this.completedSteps.size / this.steps.length) * 100)
+  }
+
+  get summary() {
+    return {
+      total: this.steps.length,
+      completed: this.completedSteps.size,
+      failed: this.failedSteps.size,
+      skipped: this.skippedSteps.size,
+    }
   }
 }

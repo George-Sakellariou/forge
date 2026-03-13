@@ -69,14 +69,19 @@ async function executeWorkflowSteps(
 ) {
   const stepOutputs = new Map<string, string>()
 
-  while (!runner.isComplete) {
+  while (!runner.isFinished) {
     const readySteps = runner.getReadySteps()
     if (readySteps.length === 0) break
 
     const promises = readySteps.map(async (step) => {
       const agent = agentsByRole.get(step.agentRole)
       if (!agent) {
-        runner.markCompleted(step.id)
+        runner.markSkipped(step.id)
+        eventBus.publish("workflow:step_skipped", {
+          stepId: step.id,
+          agentRole: step.agentRole,
+          reason: `No agent found for role "${step.agentRole}"`,
+        }, { projectId })
         return
       }
 
@@ -117,7 +122,13 @@ async function executeWorkflowSteps(
               resolve()
             }
             if (event.type === "error") {
-              runner.markCompleted(step.id)
+              runner.markFailed(step.id)
+              eventBus.publish("workflow:step_failed", {
+                stepId: step.id,
+                agentRole: step.agentRole,
+                agentName: agent.name,
+                error: event.data.error,
+              }, { projectId, agentId: agent.id })
               resolve()
             }
           },
@@ -128,12 +139,12 @@ async function executeWorkflowSteps(
     await Promise.all(promises)
   }
 
-  const finalStatus = runner.isComplete ? "completed" : "failed"
+  const finalStatus = runner.hasFailures ? "failed" : "completed"
   await updateWorkflowStatus(workflowId, finalStatus, null)
 
   eventBus.publish(
     finalStatus === "completed" ? "workflow:completed" : "workflow:failed",
-    { workflowId, progress: runner.progress },
+    { workflowId, progress: runner.progress, ...runner.summary },
     { projectId },
   )
 }

@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk"
 import { executeToolCall } from "@/lib/tools/tool-executor"
 import { getAnthropicToolDefs } from "@/lib/tools/tool-registry"
 import { calculateCost } from "./cost-tracker"
+import { sessionManager } from "./session-manager"
 import type { AgentModel } from "@/lib/types/agent"
 import type { ToolContext } from "@/lib/tools/tool-registry"
 
@@ -57,6 +58,15 @@ export async function runAgentLoop(
 
   while (turns < config.maxTurns) {
     if (abortSignal?.aborted) break
+
+    // Inject any admin instructions queued between turns
+    const pendingMessages = sessionManager.drainMessages(config.agentId)
+    if (pendingMessages.length > 0) {
+      const adminContext = pendingMessages
+        .map((m) => `[ADMIN INSTRUCTION]: ${m}`)
+        .join("\n")
+      messages.push({ role: "user", content: adminContext })
+    }
 
     turns++
 

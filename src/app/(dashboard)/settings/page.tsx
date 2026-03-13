@@ -26,7 +26,7 @@ export default function SettingsPage() {
         setStatus({
           database: agentsJson.success,
           agents: agentsJson.success ? agentsJson.data.length : 0,
-          apiKey: statsJson.success,
+          apiKey: statsJson.success && statsJson.data?.hasApiKey === true,
         })
       } catch {
         setStatus({ database: false, agents: 0, apiKey: false })
