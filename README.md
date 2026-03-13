@@ -157,7 +157,7 @@ Real-time streaming with tool calls (read_file, write_file), token tracking, and
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/forge.git
+git clone https://github.com/George-Sakellariou/forge.git
 cd forge
 
 # Install dependencies
