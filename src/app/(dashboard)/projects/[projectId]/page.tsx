@@ -39,7 +39,7 @@ export default function ProjectWorkspacePage() {
           )
           if (found) {
             setProject(found)
-            setActiveProject(found.id, found.name)
+            setActiveProject(found.id, found.name, found.workingDirectory)
           } else {
             setError("Project not found")
           }

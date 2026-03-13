@@ -89,7 +89,7 @@ export default function ProjectsPage() {
   }
 
   const handleProjectClick = (project: Project) => {
-    setActiveProject(project.id, project.name)
+    setActiveProject(project.id, project.name, project.workingDirectory)
   }
 
   return (

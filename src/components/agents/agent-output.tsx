@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAgentStore } from "@/stores/agent-store"
 import { Wrench, AlertCircle, CheckCircle2, Terminal } from "lucide-react"
 
@@ -25,8 +24,8 @@ export function AgentOutput({ agentId }: AgentOutputProps) {
   )
 
   return (
-    <div className="glow-card flex flex-1 flex-col overflow-hidden rounded-xl border border-forge-border bg-card">
-      <div className="flex items-center justify-between border-b border-forge-border/50 px-4 py-2.5">
+    <div className="glow-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-forge-border bg-card">
+      <div className="flex shrink-0 items-center justify-between border-b border-forge-border/50 px-4 py-2.5">
         <div className="flex items-center gap-2">
           <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -42,7 +41,7 @@ export function AgentOutput({ agentId }: AgentOutputProps) {
           </div>
         )}
       </div>
-      <ScrollArea className="flex-1">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="p-4">
           {!output && toolEvents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
@@ -111,7 +110,7 @@ export function AgentOutput({ agentId }: AgentOutputProps) {
           )}
           <div ref={bottomRef} />
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

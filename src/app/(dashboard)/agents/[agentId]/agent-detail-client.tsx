@@ -6,9 +6,10 @@ import { AgentStatusBadge } from "@/components/agents/agent-status-badge"
 import { PromptInput } from "@/components/console/prompt-input"
 import { Button } from "@/components/ui/button"
 import { useAgentStore } from "@/stores/agent-store"
+import { useProjectStore } from "@/stores/project-store"
 import { formatCost, formatTokens } from "@/lib/agents/cost-tracker"
 import type { Agent } from "@/lib/types/agent"
-import { ArrowLeft, RotateCcw, Zap, DollarSign } from "lucide-react"
+import { ArrowLeft, RotateCcw, Zap, DollarSign, FolderOpen } from "lucide-react"
 import Link from "next/link"
 import { v4 as uuidv4 } from "uuid"
 
@@ -20,6 +21,8 @@ export function AgentDetailClient({ agentId }: AgentDetailClientProps) {
   const [agent, setAgent] = useState<Agent | null>(null)
   const [workingDir, setWorkingDir] = useState("")
   const [loading, setLoading] = useState(true)
+  const activeProjectWorkingDir = useProjectStore((s) => s.activeProjectWorkingDir)
+  const activeProjectName = useProjectStore((s) => s.activeProjectName)
 
   const session = useAgentStore((s) => s.sessions[agentId])
   const appendOutput = useAgentStore((s) => s.appendOutput)
@@ -28,6 +31,13 @@ export function AgentDetailClient({ agentId }: AgentDetailClientProps) {
   const startStreaming = useAgentStore((s) => s.startStreaming)
   const stopStreaming = useAgentStore((s) => s.stopStreaming)
   const clearSession = useAgentStore((s) => s.clearSession)
+
+  // Pre-fill working directory from active project
+  useEffect(() => {
+    if (activeProjectWorkingDir && !workingDir) {
+      setWorkingDir(activeProjectWorkingDir)
+    }
+  }, [activeProjectWorkingDir]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     async function fetchAgent() {
@@ -186,7 +196,7 @@ export function AgentDetailClient({ agentId }: AgentDetailClientProps) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -235,14 +245,17 @@ export function AgentDetailClient({ agentId }: AgentDetailClientProps) {
       </div>
 
       {/* Working directory input */}
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-muted-foreground">Working Dir:</label>
+      <div className="flex items-center gap-2 rounded-lg border border-forge-border/50 bg-secondary/20 px-3 py-2">
+        <FolderOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <label className="shrink-0 text-xs text-muted-foreground">
+          {activeProjectName ? `${activeProjectName}:` : "Working Dir:"}
+        </label>
         <input
           type="text"
           value={workingDir}
           onChange={(e) => setWorkingDir(e.target.value)}
           placeholder="~/Projects/my-project"
-          className="flex-1 rounded-md border border-forge-border bg-background px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-forge-accent"
+          className="flex-1 rounded border-none bg-transparent px-1 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
       </div>
 
