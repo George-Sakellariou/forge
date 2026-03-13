@@ -238,9 +238,9 @@ export default function ProjectWorkspacePage() {
                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${getEventDotColor(event.type)}`} />
                   <span className="flex-1 text-foreground/70">
                     {formatEventType(event.type)}
-                    {event.payload.agentName && (
+                    {typeof event.payload.agentName === "string" && (
                       <span className="ml-1 font-medium text-foreground/90">
-                        {event.payload.agentName as string}
+                        {event.payload.agentName}
                       </span>
                     )}
                   </span>
