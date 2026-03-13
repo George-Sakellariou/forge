@@ -13,14 +13,14 @@ registerTool({
       },
       max_length: {
         type: "number",
-        description: "Maximum content length to return (default 50000 chars)",
+        description: "Maximum content length to return (default 15000 chars)",
       },
     },
     required: ["url"],
   },
   async execute(input: Record<string, unknown>): Promise<ToolOutput> {
     const url = input.url as string
-    const maxLength = (input.max_length as number) || 50000
+    const maxLength = (input.max_length as number) || 15000
 
     try {
       const response = await fetch(url, {

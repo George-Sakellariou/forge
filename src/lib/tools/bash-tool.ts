@@ -2,7 +2,7 @@ import { spawn } from "node:child_process"
 import { registerTool, type ToolContext, type ToolOutput } from "./tool-registry"
 import { validateCommand, validateWorkingDirectory } from "./safety"
 
-const MAX_OUTPUT_LENGTH = 50000
+const MAX_OUTPUT_LENGTH = 20000
 const DEFAULT_TIMEOUT = 120000
 
 registerTool({

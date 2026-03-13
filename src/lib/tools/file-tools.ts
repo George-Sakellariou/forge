@@ -38,7 +38,7 @@ registerTool({
       },
       limit: {
         type: "number",
-        description: "Maximum number of lines to read. Optional, defaults to 2000.",
+        description: "Maximum number of lines to read. Optional, defaults to 500. Use higher values only when needed.",
       },
     },
     required: ["file_path"],
@@ -46,7 +46,7 @@ registerTool({
   async execute(input: Record<string, unknown>, context: ToolContext): Promise<ToolOutput> {
     const filePath = input.file_path as string
     const offset = (input.offset as number) || 1
-    const limit = (input.limit as number) || 2000
+    const limit = (input.limit as number) || 500
 
     const resolved = resolvePath(filePath, context)
     const pathError = await validatePath(resolved, context)
@@ -57,7 +57,7 @@ registerTool({
       const lines = content.split("\n")
       const sliced = lines.slice(offset - 1, offset - 1 + limit)
       const numbered = sliced
-        .map((line, i) => `${String(offset + i).padStart(6)} | ${line}`)
+        .map((line, i) => `${offset + i}:${line}`)
         .join("\n")
       return { content: numbered || "(empty file)" }
     } catch (err) {

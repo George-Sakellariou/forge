@@ -59,6 +59,20 @@ export async function POST(request: Request) {
   })
 }
 
+/** Max chars of previous step output to pass as context to the next step */
+const MAX_STEP_CONTEXT_CHARS = 8000
+
+/** Trim step output for handoff — keep beginning and end for key decisions/conclusions */
+function trimStepOutput(output: string): string {
+  if (output.length <= MAX_STEP_CONTEXT_CHARS) return output
+  const half = Math.floor(MAX_STEP_CONTEXT_CHARS / 2)
+  return (
+    output.slice(0, half) +
+    "\n\n... [middle trimmed for token efficiency] ...\n\n" +
+    output.slice(-half)
+  )
+}
+
 async function executeWorkflowSteps(
   runner: WorkflowRunner,
   steps: WorkflowStep[],
@@ -85,9 +99,11 @@ async function executeWorkflowSteps(
         return
       }
 
+      // Cap context from previous steps to prevent token explosion in handoffs
       const depContext = step.dependsOn
         .map((depId) => stepOutputs.get(depId))
-        .filter(Boolean)
+        .filter((v): v is string => Boolean(v))
+        .map(trimStepOutput)
         .join("\n\n---\n\n")
 
       const fullPrompt = depContext

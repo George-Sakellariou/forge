@@ -6,6 +6,15 @@ import { sessionManager } from "./session-manager"
 import type { AgentModel } from "@/lib/types/agent"
 import type { ToolContext } from "@/lib/tools/tool-registry"
 
+/**
+ * Token optimization constants.
+ * Every tool_result is resent as input tokens on every subsequent turn,
+ * so capping these dramatically reduces cumulative input cost.
+ */
+const MAX_TOOL_RESULT_CHARS = 12000 // ~3K tokens — covers most useful output
+const MAX_CONVERSATION_TURNS = 30 // Trim old turns beyond this (keep first + last N)
+const KEEP_RECENT_TURNS = 20 // When trimming, keep this many recent message pairs
+
 export interface AgentLoopConfig {
   model: AgentModel
   systemPrompt: string
@@ -33,6 +42,38 @@ export interface AgentLoopEvent {
 
 export type AgentLoopEventHandler = (event: AgentLoopEvent) => void
 
+/** Truncate a tool result string to stay within token budget */
+function truncateToolResult(content: string, maxChars: number = MAX_TOOL_RESULT_CHARS): string {
+  if (content.length <= maxChars) return content
+  const half = Math.floor(maxChars / 2)
+  const trimmed = content.length - maxChars
+  return (
+    content.slice(0, half) +
+    `\n\n... [${trimmed} chars truncated for token efficiency] ...\n\n` +
+    content.slice(-half)
+  )
+}
+
+/**
+ * Trim conversation history to prevent unbounded growth.
+ * Keeps the initial user message + the most recent KEEP_RECENT_TURNS messages.
+ * Inserts a summary marker so the model knows context was trimmed.
+ */
+function trimConversationHistory(messages: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+  if (messages.length <= MAX_CONVERSATION_TURNS) return messages
+
+  const first = messages[0] // Original user prompt — always keep
+  const recent = messages.slice(-KEEP_RECENT_TURNS)
+  const trimmedCount = messages.length - KEEP_RECENT_TURNS - 1
+
+  const summaryMessage: Anthropic.MessageParam = {
+    role: "user",
+    content: `[System note: ${trimmedCount} earlier conversation messages were trimmed to save tokens. The original task and most recent context are preserved.]`,
+  }
+
+  return [first, summaryMessage, ...recent]
+}
+
 export async function runAgentLoop(
   config: AgentLoopConfig,
   initialMessage: string,
@@ -48,7 +89,7 @@ export async function runAgentLoop(
     projectId: config.projectId,
   }
 
-  const messages: Anthropic.MessageParam[] = [
+  let messages: Anthropic.MessageParam[] = [
     { role: "user", content: initialMessage },
   ]
 
@@ -68,6 +109,9 @@ export async function runAgentLoop(
       messages.push({ role: "user", content: adminContext })
     }
 
+    // Trim conversation history if it's grown too long
+    messages = trimConversationHistory(messages)
+
     turns++
 
     try {
@@ -80,15 +124,11 @@ export async function runAgentLoop(
         messages,
       })
 
-      const contentBlocks: Anthropic.ContentBlock[] = []
-
       stream.on("text", (text) => {
         onEvent({ type: "text_delta", data: { text } })
       })
 
       stream.on("contentBlock", (block) => {
-        contentBlocks.push(block)
-
         if (block.type === "tool_use") {
           onEvent({
             type: "tool_use_start",
@@ -162,10 +202,13 @@ export async function runAgentLoop(
           },
         })
 
+        // Truncate tool results before adding to conversation history.
+        // This is the single biggest token savings — tool results (file contents,
+        // bash output, web pages) are resent as input tokens on EVERY subsequent turn.
         toolResults.push({
           type: "tool_result",
           tool_use_id: toolUse.id,
-          content: result.content,
+          content: truncateToolResult(result.content),
           is_error: result.isError,
         })
       }

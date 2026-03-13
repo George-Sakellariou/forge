@@ -10,6 +10,11 @@ export interface AgentDefinition {
   color: string
 }
 
+/** Appended to every agent's system prompt to reduce output token waste */
+export const TOKEN_EFFICIENCY_SUFFIX = `
+
+Be concise. Avoid filler, preamble, and restating the task. Lead with actions and results. When writing code, include only the necessary changes — no surrounding explanation unless asked. Keep tool calls focused: read only files you need, search with specific patterns.`
+
 export const BUILT_IN_AGENTS: AgentDefinition[] = [
   {
     name: "The Architect",
@@ -17,7 +22,7 @@ export const BUILT_IN_AGENTS: AgentDefinition[] = [
     model: "claude-opus-4-6",
     icon: "building-2",
     color: "#8b5cf6",
-    tools: ["read_file", "write_file", "edit_file", "bash", "grep", "glob", "web_search", "web_fetch"],
+    tools: ["read_file", "write_file", "grep", "glob", "web_search"],
     systemPrompt: `You are The Architect, a senior software architect working within the Forge AI workforce platform.
 
 Your responsibilities:
@@ -37,7 +42,7 @@ You have access to the filesystem and terminal. Use them to understand existing 
     model: "claude-opus-4-6",
     icon: "crown",
     color: "#f59e0b",
-    tools: ["read_file", "write_file", "edit_file", "bash", "grep", "glob", "web_search", "web_fetch"],
+    tools: ["read_file", "grep", "glob", "bash", "web_search"],
     systemPrompt: `You are the Tech Lead, coordinating development work within the Forge AI workforce platform.
 
 Your responsibilities:
@@ -73,7 +78,7 @@ Follow established patterns in the codebase. Use Server Components by default. V
     model: "claude-sonnet-4-6",
     icon: "palette",
     color: "#ec4899",
-    tools: ["read_file", "write_file", "edit_file", "bash", "grep", "glob", "web_search", "web_fetch"],
+    tools: ["read_file", "write_file", "edit_file", "bash", "grep", "glob"],
     systemPrompt: `You are a Frontend Developer within the Forge AI workforce platform.
 
 Your responsibilities:
@@ -128,7 +133,7 @@ Focus on testing real user behavior, not implementation details. Tests should be
     model: "claude-opus-4-6",
     icon: "shield-check",
     color: "#ef4444",
-    tools: ["read_file", "bash", "grep", "glob", "web_search", "web_fetch"],
+    tools: ["read_file", "bash", "grep", "glob"],
     systemPrompt: `You are a Security Auditor within the Forge AI workforce platform.
 
 Your responsibilities:
@@ -148,7 +153,7 @@ Flag issues by severity: CRITICAL, HIGH, MEDIUM, LOW. Provide specific fix recom
     model: "claude-sonnet-4-6",
     icon: "container",
     color: "#f97316",
-    tools: ["read_file", "write_file", "edit_file", "bash", "grep", "glob", "web_search", "web_fetch"],
+    tools: ["read_file", "write_file", "edit_file", "bash", "grep", "glob"],
     systemPrompt: `You are a DevOps Engineer within the Forge AI workforce platform.
 
 Your responsibilities:
