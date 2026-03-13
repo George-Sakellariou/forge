@@ -7,7 +7,6 @@ import {
   Bot,
   FolderKanban,
   Settings,
-  Hammer,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -23,16 +22,26 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-full w-56 flex-col border-r border-forge-border bg-sidebar">
-      <div className="flex items-center gap-2.5 border-b border-forge-border px-5 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-forge-accent">
-          <Hammer className="h-4 w-4 text-white" />
+      {/* Brand */}
+      <div className="flex items-center gap-3 px-5 py-5">
+        <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-forge-accent to-purple-500 shadow-lg shadow-forge-accent/20">
+          <span className="text-base font-black text-white">F</span>
         </div>
-        <span className="text-lg font-bold tracking-tight text-foreground">
-          FORGE
-        </span>
+        <div>
+          <span className="gradient-text text-lg font-bold tracking-tight">
+            FORGE
+          </span>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            AI Workforce
+          </p>
+        </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      {/* Nav */}
+      <nav className="flex-1 space-y-0.5 px-3 py-3">
+        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+          Command Center
+        </p>
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -42,21 +51,37 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-forge-accent/10 text-forge-accent"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  ? "bg-forge-accent/10 text-forge-accent accent-glow"
+                  : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground",
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  isActive
+                    ? "text-forge-accent"
+                    : "text-muted-foreground group-hover:text-foreground",
+                )}
+              />
               {item.label}
+              {isActive && (
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-forge-accent shadow-sm shadow-forge-accent/50" />
+              )}
             </Link>
           )
         })}
       </nav>
 
-      <div className="border-t border-forge-border px-4 py-3">
-        <p className="text-xs text-muted-foreground">Forge v0.1.0</p>
+      {/* Footer */}
+      <div className="border-t border-forge-border px-5 py-3">
+        <div className="flex items-center gap-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-forge-success shadow-sm shadow-forge-success/50" />
+          <p className="text-[11px] text-muted-foreground">
+            v0.1.0 <span className="text-forge-muted">&middot;</span> Local
+          </p>
+        </div>
       </div>
     </aside>
   )

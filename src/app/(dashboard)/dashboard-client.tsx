@@ -36,36 +36,42 @@ export function DashboardClient() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Monitor your AI workforce in real-time
+      <div className="animate-fade-up">
+        <h1 className="gradient-text text-2xl font-bold tracking-tight">
+          Command Center
+        </h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Monitor and direct your AI workforce in real-time
         </p>
       </div>
 
       <StatsCards />
 
       <div>
-        <h2 className="mb-4 text-lg font-semibold">Agents</h2>
+        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+          Agent Fleet
+        </h2>
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-forge-accent" />
+            <Loader2 className="h-5 w-5 animate-spin text-forge-accent" />
           </div>
         ) : error ? (
-          <div className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-forge-error/30 py-12">
-            <AlertCircle className="h-5 w-5 text-forge-error" />
-            <p className="text-sm text-forge-error">{error}</p>
+          <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-forge-error/20 py-12">
+            <AlertCircle className="h-4 w-4 text-forge-error" />
+            <p className="text-xs text-forge-error">{error}</p>
           </div>
         ) : (
           <AgentGrid agents={agents} />
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ActivityFeed />
 
-        <div className="flex flex-col rounded-lg border border-forge-border bg-card p-4">
-          <h3 className="mb-3 text-sm font-medium">Admin Console</h3>
+        <div className="glow-card flex flex-col rounded-xl border border-forge-border bg-card p-4">
+          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            Admin Console
+          </h3>
           <AdminConsole agents={agents} />
         </div>
       </div>

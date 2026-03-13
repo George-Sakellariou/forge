@@ -1,7 +1,6 @@
 "use client"
 
 import { Bot, ListChecks, DollarSign, Zap } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
 import { useAgentStore } from "@/stores/agent-store"
 import { formatCost, formatTokens } from "@/lib/agents/cost-tracker"
 
@@ -18,46 +17,54 @@ export function StatsCards() {
       label: "Active Agents",
       value: String(activeCount),
       icon: Bot,
-      color: "text-forge-accent",
-      bgColor: "bg-forge-accent/10",
+      gradient: "from-indigo-500/20 to-purple-500/20",
+      iconColor: "text-indigo-400",
+      glowColor: "shadow-indigo-500/10",
     },
     {
       label: "Sessions",
       value: String(sessionValues.length),
       icon: ListChecks,
-      color: "text-forge-success",
-      bgColor: "bg-forge-success/10",
+      gradient: "from-emerald-500/20 to-teal-500/20",
+      iconColor: "text-emerald-400",
+      glowColor: "shadow-emerald-500/10",
     },
     {
       label: "Tokens Used",
       value: formatTokens(totalTokens),
       icon: Zap,
-      color: "text-forge-warning",
-      bgColor: "bg-forge-warning/10",
+      gradient: "from-amber-500/20 to-orange-500/20",
+      iconColor: "text-amber-400",
+      glowColor: "shadow-amber-500/10",
     },
     {
       label: "Total Cost",
       value: formatCost(totalCost),
       icon: DollarSign,
-      color: "text-forge-error",
-      bgColor: "bg-forge-error/10",
+      gradient: "from-rose-500/20 to-pink-500/20",
+      iconColor: "text-rose-400",
+      glowColor: "shadow-rose-500/10",
     },
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-4">
-      {stats.map((stat) => (
-        <Card key={stat.label} className="border-forge-border bg-card">
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className={`rounded-lg p-2.5 ${stat.bgColor}`}>
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
+    <div className="grid grid-cols-4 gap-3">
+      {stats.map((stat, i) => (
+        <div
+          key={stat.label}
+          className="animate-fade-up glow-card rounded-xl border border-forge-border bg-card p-4"
+          style={{ animationDelay: `${i * 80}ms` }}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`rounded-lg bg-gradient-to-br ${stat.gradient} p-2.5 shadow-lg ${stat.glowColor}`}>
+              <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
             </div>
             <div>
-              <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="text-xl font-bold tracking-tight">{stat.value}</p>
+              <p className="text-[11px] text-muted-foreground">{stat.label}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   )

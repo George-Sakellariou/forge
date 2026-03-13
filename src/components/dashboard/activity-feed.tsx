@@ -8,11 +8,11 @@ import { Bot, Wrench, AlertCircle, CheckCircle2, Play } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const eventIcons: Record<string, { icon: typeof Bot; color: string }> = {
-  "agent:started": { icon: Play, color: "text-forge-accent" },
-  "agent:completed": { icon: CheckCircle2, color: "text-forge-success" },
-  "agent:error": { icon: AlertCircle, color: "text-forge-error" },
-  "agent:tool_use": { icon: Wrench, color: "text-forge-warning" },
-  "agent:tool_result": { icon: Wrench, color: "text-forge-muted" },
+  "agent:started": { icon: Play, color: "text-indigo-400" },
+  "agent:completed": { icon: CheckCircle2, color: "text-emerald-400" },
+  "agent:error": { icon: AlertCircle, color: "text-rose-400" },
+  "agent:tool_use": { icon: Wrench, color: "text-amber-400" },
+  "agent:tool_result": { icon: Wrench, color: "text-slate-500" },
 }
 
 function getEventDisplay(event: { type: string; payload: Record<string, unknown> }) {
@@ -46,7 +46,6 @@ export function ActivityFeed() {
     eventSource.onopen = () => setConnected(true)
     eventSource.onerror = () => setConnected(false)
 
-    // Listen to all event types
     const eventTypes = [
       "agent:started",
       "agent:completed",
@@ -70,25 +69,27 @@ export function ActivityFeed() {
   }, [addEvent, setConnected])
 
   return (
-    <div className="flex flex-col rounded-lg border border-forge-border bg-card">
-      <div className="flex items-center justify-between border-b border-forge-border px-4 py-3">
-        <h3 className="text-sm font-medium">Activity Feed</h3>
+    <div className="glow-card flex flex-col rounded-xl border border-forge-border bg-card">
+      <div className="flex items-center justify-between border-b border-forge-border/50 px-4 py-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Activity Feed
+        </h3>
         <div className="flex items-center gap-2">
           <div
             className={cn(
-              "h-2 w-2 rounded-full",
-              isConnected ? "bg-forge-success status-pulse" : "bg-forge-muted",
+              "h-1.5 w-1.5 rounded-full",
+              isConnected ? "bg-forge-success status-pulse" : "bg-slate-600",
             )}
           />
-          <span className="text-xs text-muted-foreground">
+          <span className="text-[10px] font-medium text-muted-foreground">
             {isConnected ? "Live" : "Disconnected"}
           </span>
         </div>
       </div>
       <ScrollArea className="h-64">
-        <div className="space-y-1 p-3">
+        <div className="space-y-0.5 p-2">
           {events.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
+            <p className="py-8 text-center text-xs text-muted-foreground">
               No activity yet. Start an agent to see events.
             </p>
           ) : (
@@ -97,18 +98,18 @@ export function ActivityFeed() {
               .reverse()
               .map((event) => {
                 const config =
-                  eventIcons[event.type] || { icon: Bot, color: "text-forge-muted" }
+                  eventIcons[event.type] || { icon: Bot, color: "text-slate-500" }
                 const Icon = config.icon
                 return (
                   <div
                     key={event.id}
-                    className="flex items-start gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-secondary/50"
+                    className="group flex items-start gap-3 rounded-lg px-3 py-2 text-xs transition-colors hover:bg-secondary/30"
                   >
-                    <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${config.color}`} />
-                    <span className="flex-1 text-foreground/80">
+                    <Icon className={`mt-0.5 h-3 w-3 shrink-0 ${config.color}`} />
+                    <span className="flex-1 text-foreground/70 group-hover:text-foreground/90">
                       {getEventDisplay(event)}
                     </span>
-                    <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground/60">
                       {formatTimestamp(event.createdAt)}
                     </span>
                   </div>

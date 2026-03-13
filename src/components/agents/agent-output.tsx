@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAgentStore } from "@/stores/agent-store"
-import { Wrench, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Wrench, AlertCircle, CheckCircle2, Terminal } from "lucide-react"
 
 interface AgentOutputProps {
   agentId: string
@@ -25,31 +25,42 @@ export function AgentOutput({ agentId }: AgentOutputProps) {
   )
 
   return (
-    <div className="flex flex-1 flex-col rounded-lg border border-forge-border bg-background">
-      <div className="flex items-center justify-between border-b border-forge-border px-4 py-2">
-        <h3 className="text-sm font-medium">Output</h3>
+    <div className="glow-card flex flex-1 flex-col overflow-hidden rounded-xl border border-forge-border bg-card">
+      <div className="flex items-center justify-between border-b border-forge-border/50 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Output
+          </h3>
+        </div>
         {session?.isStreaming && (
           <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-forge-success status-pulse" />
-            <span className="text-xs text-forge-success">Streaming</span>
+            <div className="h-1.5 w-1.5 rounded-full bg-forge-success status-pulse" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-forge-success">
+              Streaming
+            </span>
           </div>
         )}
       </div>
       <ScrollArea className="flex-1">
         <div className="p-4">
           {!output && toolEvents.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Send a message to start the agent.
-            </p>
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="rounded-xl bg-secondary/30 p-4">
+                <Terminal className="h-6 w-6 text-muted-foreground/40" />
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Send a message to start the agent.
+              </p>
+            </div>
           ) : (
             <div className="space-y-2">
-              {/* Interleave text and tool events */}
               {output && (
-                <div className="terminal-output text-foreground/90">{output}</div>
+                <div className="terminal-output text-foreground/85">{output}</div>
               )}
               {toolEvents.length > 0 && (
-                <div className="mt-4 space-y-2 border-t border-forge-border pt-4">
-                  <h4 className="text-xs font-medium text-muted-foreground">
+                <div className="mt-4 space-y-1.5 border-t border-forge-border/30 pt-4">
+                  <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Tool Activity
                   </h4>
                   {toolEvents.map((event) => {
@@ -58,21 +69,21 @@ export function AgentOutput({ agentId }: AgentOutputProps) {
                     return (
                       <div
                         key={event.id}
-                        className="flex items-start gap-2 rounded-md bg-secondary/50 px-3 py-2 text-xs"
+                        className="flex items-start gap-2 rounded-lg bg-secondary/30 px-3 py-2 text-xs"
                       >
                         {isToolUse ? (
-                          <Wrench className="mt-0.5 h-3 w-3 shrink-0 text-forge-warning" />
+                          <Wrench className="mt-0.5 h-3 w-3 shrink-0 text-amber-400" />
                         ) : isError ? (
-                          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0 text-forge-error" />
+                          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0 text-rose-400" />
                         ) : (
-                          <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-forge-success" />
+                          <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-400" />
                         )}
                         <div className="flex-1 overflow-hidden">
-                          <span className="font-mono font-medium text-foreground">
+                          <span className="font-mono font-medium text-foreground/80">
                             {(event.data as Record<string, unknown>).toolName as string}
                           </span>
                           {isToolUse && (event.data as Record<string, unknown>).input ? (
-                            <pre className="mt-1 truncate text-muted-foreground">
+                            <pre className="mt-1 truncate text-muted-foreground/70">
                               {JSON.stringify(
                                 (event.data as Record<string, unknown>).input,
                                 null,
@@ -81,13 +92,13 @@ export function AgentOutput({ agentId }: AgentOutputProps) {
                             </pre>
                           ) : null}
                           {!isToolUse && (event.data as Record<string, unknown>).content ? (
-                            <pre className="mt-1 max-h-24 overflow-hidden truncate text-muted-foreground">
+                            <pre className="mt-1 max-h-24 overflow-hidden truncate text-muted-foreground/70">
                               {((event.data as Record<string, unknown>).content as string).slice(0, 300)}
                             </pre>
                           ) : null}
                         </div>
                         {!isToolUse && (event.data as Record<string, unknown>).durationMs ? (
-                          <span className="shrink-0 text-muted-foreground">
+                          <span className="shrink-0 font-mono text-[10px] text-muted-foreground/50">
                             {String((event.data as Record<string, unknown>).durationMs)}ms
                           </span>
                         ) : null}
