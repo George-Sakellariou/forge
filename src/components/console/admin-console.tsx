@@ -35,13 +35,14 @@ export function AdminConsole({ agents }: AdminConsoleProps) {
 
   const handleSend = useCallback(
     async (message: string) => {
-      const targetId = selectedAgentId || "broadcast"
+      if (!selectedAgentId) return
+
       const targetName =
-        agents.find((a) => a.id === selectedAgentId)?.name || "All Agents"
+        agents.find((a) => a.id === selectedAgentId)?.name || "Agent"
 
       const consoleMsg: ConsoleMessage = {
         id: crypto.randomUUID(),
-        agentId: targetId,
+        agentId: selectedAgentId,
         agentName: targetName,
         message,
         timestamp: new Date().toISOString(),
@@ -51,11 +52,30 @@ export function AdminConsole({ agents }: AdminConsoleProps) {
       setMessages((prev) => [...prev, consoleMsg])
 
       try {
-        await fetch("/api/agents/instruct", {
+        const res = await fetch("/api/agents/instruct", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ agentId: selectedAgentId, message }),
         })
+
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({ error: "Request failed" }))
+          const errorMsg: ConsoleMessage = {
+            id: crypto.randomUUID(),
+            agentId: selectedAgentId,
+            agentName: "System",
+            message: json.error || `Error ${res.status}`,
+            timestamp: new Date().toISOString(),
+            status: "error",
+          }
+          setMessages((prev) => [
+            ...prev.map((m) =>
+              m.id === consoleMsg.id ? { ...m, status: "error" as const } : m,
+            ),
+            errorMsg,
+          ])
+          return
+        }
 
         setMessages((prev) =>
           prev.map((m) =>

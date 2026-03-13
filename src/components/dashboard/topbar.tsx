@@ -1,11 +1,13 @@
 "use client"
 
-import { Bot, Activity, DollarSign } from "lucide-react"
+import { Bot, Activity, DollarSign, FolderOpen } from "lucide-react"
 import { useAgentStore } from "@/stores/agent-store"
+import { useProjectStore } from "@/stores/project-store"
 import { formatCost, formatTokens } from "@/lib/agents/cost-tracker"
 
 export function Topbar() {
   const sessions = useAgentStore((s) => s.sessions)
+  const activeProjectName = useProjectStore((s) => s.activeProjectName)
 
   const sessionValues = Object.values(sessions)
   const activeCount = sessionValues.filter((s) => s.status === "working").length
@@ -15,6 +17,14 @@ export function Topbar() {
   return (
     <header className="flex h-14 items-center justify-between border-b border-forge-border bg-card px-6">
       <div className="flex items-center gap-6">
+        {activeProjectName && (
+          <div className="flex items-center gap-2 text-sm">
+            <FolderOpen className="h-4 w-4 text-forge-accent" />
+            <span className="font-medium text-foreground">
+              {activeProjectName}
+            </span>
+          </div>
+        )}
         <div className="flex items-center gap-2 text-sm">
           <Bot className="h-4 w-4 text-forge-accent" />
           <span className="text-muted-foreground">Active:</span>

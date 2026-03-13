@@ -16,9 +16,10 @@ export const useEventStore = create<EventStore>((set) => ({
   isConnected: false,
 
   addEvent: (event) =>
-    set((state) => ({
-      events: [...state.events.slice(-500), event],
-    })),
+    set((state) => {
+      if (state.events.some((e) => e.id === event.id)) return state
+      return { events: [...state.events.slice(-500), event] }
+    }),
 
   setEvents: (events) => set({ events }),
 

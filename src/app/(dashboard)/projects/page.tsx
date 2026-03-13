@@ -13,28 +13,40 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { useProjectStore } from "@/stores/project-store"
 import type { Project } from "@/lib/types/project"
-import { Plus, FolderOpen, Clock } from "lucide-react"
+import { Plus, FolderOpen, Clock, Loader2, AlertCircle } from "lucide-react"
 import { formatRelativeTime } from "@/lib/utils/format"
 import Link from "next/link"
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [workingDir, setWorkingDir] = useState("")
   const [refreshKey, setRefreshKey] = useState(0)
+  const setActiveProject = useProjectStore((s) => s.setActiveProject)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
+        setError(null)
         const res = await fetch("/api/projects")
         const json = await res.json()
-        if (!cancelled && json.success) setProjects(json.data)
+        if (!cancelled && json.success) {
+          setProjects(json.data)
+        } else if (!cancelled) {
+          setError(json.error || "Failed to load projects")
+        }
       } catch {
-        // Handle error
+        if (!cancelled) setError("Failed to connect to server")
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
     load()
@@ -47,6 +59,7 @@ export default function ProjectsPage() {
 
   const handleCreate = async () => {
     if (!name.trim()) return
+    setCreateError(null)
 
     try {
       const res = await fetch("/api/projects", {
@@ -59,16 +72,24 @@ export default function ProjectsPage() {
         }),
       })
 
-      if (res.ok) {
+      const json = await res.json()
+
+      if (res.ok && json.success) {
         setName("")
         setDescription("")
         setWorkingDir("")
         setOpen(false)
         fetchProjects()
+      } else {
+        setCreateError(json.error || "Failed to create project")
       }
     } catch {
-      // Handle error
+      setCreateError("Failed to connect to server")
     }
+  }
+
+  const handleProjectClick = (project: Project) => {
+    setActiveProject(project.id, project.name)
   }
 
   return (
@@ -80,7 +101,7 @@ export default function ProjectsPage() {
             Manage your AI-assisted development projects
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); setCreateError(null) }}>
           <DialogTrigger
             className="inline-flex items-center justify-center rounded-md bg-forge-accent px-4 py-2 text-sm font-medium text-white hover:bg-forge-accent/80"
           >
@@ -120,6 +141,12 @@ export default function ProjectsPage() {
                   className="border-forge-border bg-background font-mono text-sm"
                 />
               </div>
+              {createError && (
+                <div className="flex items-center gap-2 text-sm text-forge-error">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {createError}
+                </div>
+              )}
               <Button
                 onClick={handleCreate}
                 disabled={!name.trim()}
@@ -132,7 +159,19 @@ export default function ProjectsPage() {
         </Dialog>
       </div>
 
-      {projects.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-forge-accent" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-forge-error/30 py-16">
+          <AlertCircle className="h-6 w-6 text-forge-error" />
+          <p className="text-sm text-forge-error">{error}</p>
+          <Button variant="outline" size="sm" onClick={fetchProjects}>
+            Retry
+          </Button>
+        </div>
+      ) : projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-forge-border py-16">
           <p className="text-sm text-muted-foreground">
             No projects yet. Create one to get started.
@@ -141,7 +180,11 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Link key={project.id} href={`/projects/${project.id}`}>
+            <Link
+              key={project.id}
+              href={`/projects/${project.id}`}
+              onClick={() => handleProjectClick(project)}
+            >
               <Card className="border-forge-border bg-card transition-colors hover:border-forge-accent/30">
                 <CardContent className="p-4">
                   <h3 className="font-medium">{project.name}</h3>

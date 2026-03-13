@@ -7,30 +7,67 @@ import { AgentGrid } from "@/components/agents/agent-grid"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { AdminConsole } from "@/components/console/admin-console"
 import { useAgentStore } from "@/stores/agent-store"
+import { useProjectStore } from "@/stores/project-store"
 import type { Project } from "@/lib/types/project"
-import { FolderOpen, GitBranch } from "lucide-react"
+import { FolderOpen, GitBranch, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 export default function ProjectWorkspacePage() {
   const { projectId } = useParams<{ projectId: string }>()
-  const [project] = useState<Project | null>(null)
+  const [project, setProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const agents = useAgentStore((s) => s.agents)
   const setAgents = useAgentStore((s) => s.setAgents)
+  const setActiveProject = useProjectStore((s) => s.setActiveProject)
 
   useEffect(() => {
     async function load() {
       try {
-        const [agentsRes] = await Promise.all([
+        const [projectsRes, agentsRes] = await Promise.all([
+          fetch("/api/projects"),
           fetch("/api/agents"),
         ])
+        const projectsJson = await projectsRes.json()
         const agentsJson = await agentsRes.json()
+
         if (agentsJson.success) setAgents(agentsJson.data)
+
+        if (projectsJson.success) {
+          const found = projectsJson.data.find(
+            (p: Project) => p.id === projectId,
+          )
+          if (found) {
+            setProject(found)
+            setActiveProject(found.id, found.name)
+          } else {
+            setError("Project not found")
+          }
+        }
       } catch {
-        // Handle error
+        setError("Failed to load project")
+      } finally {
+        setLoading(false)
       }
     }
     load()
-  }, [projectId, setAgents])
+  }, [projectId, setAgents, setActiveProject])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-forge-accent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-sm text-forge-error">{error}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -39,6 +76,11 @@ export default function ProjectWorkspacePage() {
           <h1 className="text-2xl font-bold tracking-tight">
             {project?.name || "Project Workspace"}
           </h1>
+          {project?.description && (
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {project.description}
+            </p>
+          )}
           {project?.workingDirectory && (
             <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
               <FolderOpen className="h-3.5 w-3.5" />
