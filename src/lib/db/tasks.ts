@@ -109,13 +109,29 @@ export async function updateTask(
   return rows.length > 0 ? mapRow(rows[0]) : null
 }
 
-export async function getTaskStats(): Promise<Record<string, number>> {
+export async function getTaskStats(projectId?: string): Promise<Record<string, number>> {
   const rows = await sql<{ status: string; count: string }[]>`
-    SELECT status, COUNT(*)::text as count FROM tasks GROUP BY status
+    SELECT status, COUNT(*)::text as count FROM tasks
+    WHERE ${projectId ? sql`project_id = ${projectId}` : sql`TRUE`}
+    GROUP BY status
   `
   const stats: Record<string, number> = { pending: 0, running: 0, completed: 0, failed: 0 }
   for (const row of rows) {
     stats[row.status] = parseInt(row.count, 10)
   }
   return stats
+}
+
+export async function getProjectCostSummary(projectId: string) {
+  const rows = await sql<{ total_tokens: string; total_cost: string }[]>`
+    SELECT
+      COALESCE(SUM(tokens_used), 0)::text as total_tokens,
+      COALESCE(SUM(cost_usd), 0)::text as total_cost
+    FROM tasks
+    WHERE project_id = ${projectId}
+  `
+  return {
+    totalTokens: parseInt(rows[0]?.total_tokens || "0", 10),
+    totalCost: parseFloat(rows[0]?.total_cost || "0"),
+  }
 }

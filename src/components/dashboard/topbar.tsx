@@ -1,13 +1,16 @@
 "use client"
 
-import { Bot, Activity, DollarSign, FolderOpen } from "lucide-react"
+import { Bot, Activity, DollarSign, FolderOpen, X } from "lucide-react"
 import { useAgentStore } from "@/stores/agent-store"
 import { useProjectStore } from "@/stores/project-store"
 import { formatCost, formatTokens } from "@/lib/agents/cost-tracker"
+import Link from "next/link"
 
 export function Topbar() {
   const sessions = useAgentStore((s) => s.sessions)
+  const activeProjectId = useProjectStore((s) => s.activeProjectId)
   const activeProjectName = useProjectStore((s) => s.activeProjectName)
+  const clearActiveProject = useProjectStore((s) => s.clearActiveProject)
 
   const sessionValues = Object.values(sessions)
   const activeCount = sessionValues.filter((s) => s.status === "working").length
@@ -15,16 +18,40 @@ export function Topbar() {
   const totalCost = sessionValues.reduce((sum, s) => sum + s.costUsd, 0)
 
   return (
-    <header className="glass-panel flex h-12 items-center justify-between px-6">
+    <header className="glass-panel flex h-12 shrink-0 items-center justify-between px-6">
       <div className="flex items-center gap-5">
-        {activeProjectName && (
-          <div className="flex items-center gap-2 rounded-md bg-forge-accent/5 px-2.5 py-1">
+        {activeProjectName && activeProjectId ? (
+          <Link
+            href={`/projects/${activeProjectId}`}
+            className="group flex items-center gap-2 rounded-md border border-forge-accent/20 bg-forge-accent/5 px-3 py-1 transition-colors hover:border-forge-accent/40 hover:bg-forge-accent/10"
+          >
             <FolderOpen className="h-3.5 w-3.5 text-forge-accent" />
             <span className="text-xs font-medium text-forge-accent-bright">
               {activeProjectName}
             </span>
-          </div>
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                clearActiveProject()
+              }}
+              className="ml-1 rounded p-0.5 opacity-0 transition-opacity hover:bg-forge-accent/20 group-hover:opacity-100"
+            >
+              <X className="h-2.5 w-2.5 text-forge-accent" />
+            </button>
+          </Link>
+        ) : (
+          <Link
+            href="/projects"
+            className="flex items-center gap-2 rounded-md border border-dashed border-forge-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-forge-accent/30 hover:text-foreground"
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            Select Project
+          </Link>
         )}
+      </div>
+
+      <div className="flex items-center gap-5">
         <Metric icon={Bot} label="Active" value={String(activeCount)} color="text-forge-accent" active={activeCount > 0} />
         <Metric icon={Activity} label="Tokens" value={formatTokens(totalTokens)} color="text-forge-success" />
         <Metric icon={DollarSign} label="Cost" value={formatCost(totalCost)} color="text-forge-warning" />

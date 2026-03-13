@@ -7,8 +7,11 @@ import {
   Bot,
   FolderKanban,
   Settings,
+  FolderOpen,
+  GitBranch,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useProjectStore } from "@/stores/project-store"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -19,9 +22,11 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const activeProjectId = useProjectStore((s) => s.activeProjectId)
+  const activeProjectName = useProjectStore((s) => s.activeProjectName)
 
   return (
-    <aside className="flex h-full w-56 flex-col border-r border-forge-border bg-sidebar">
+    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-forge-border bg-sidebar">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5">
         <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-forge-accent to-purple-500 shadow-lg shadow-forge-accent/20">
@@ -36,6 +41,29 @@ export function Sidebar() {
           </p>
         </div>
       </div>
+
+      {/* Active Project Context */}
+      {activeProjectId && activeProjectName && (
+        <div className="mx-3 mb-2 rounded-lg border border-forge-accent/15 bg-forge-accent/5 px-3 py-2.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Active Project
+          </p>
+          <Link
+            href={`/projects/${activeProjectId}`}
+            className="mt-1 flex items-center gap-2 text-sm font-medium text-forge-accent-bright transition-colors hover:text-forge-accent"
+          >
+            <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{activeProjectName}</span>
+          </Link>
+          <Link
+            href={`/projects/${activeProjectId}/workflow`}
+            className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <GitBranch className="h-3 w-3" />
+            Workflows
+          </Link>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 space-y-0.5 px-3 py-3">

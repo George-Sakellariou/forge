@@ -34,3 +34,27 @@ export async function findRecentEvents(limit = 50) {
   `
   return [...rows]
 }
+
+export async function findEventsByProject(projectId: string, limit = 50) {
+  const rows = await sql`
+    SELECT * FROM events
+    WHERE project_id = ${projectId}
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `
+  return [...rows]
+}
+
+export async function getProjectEventCounts(projectId: string) {
+  const rows = await sql<{ type: string; count: string }[]>`
+    SELECT type, COUNT(*)::text as count
+    FROM events
+    WHERE project_id = ${projectId}
+    GROUP BY type
+  `
+  const counts: Record<string, number> = {}
+  for (const row of rows) {
+    counts[row.type] = parseInt(row.count, 10)
+  }
+  return counts
+}
